@@ -1,11 +1,32 @@
-from flask import Flask, request
+from flask import Flask, request, render_template, session
 import csv
-from flask import render_template
+import os
+from fileinput import filename
+import pandas as pd
+from werkzeug.utils import secure_filename
+
+UPLOAD_FOLDER = os.path.join('staticFiles', 'uploads')
+ALLOWED_EXTENSIONS = {'csv'}
 
 app = Flask(__name__)
+# Configure upload file path flask
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.secret_key = 'This is your secret key to utilize session in Flask'
 
 
 @app.route("/", methods=['GET', 'POST'])
+def index():
+    if request.method == 'POST':
+        f = request.files.get('file')
+        # data_filename = "product_data.csv"
+        data_filename = secure_filename(f.filename)
+        f.save(os.path.join(app.config['UPLOAD_FOLDER'], data_filename))
+        session['uploaded_data_file_path'] = os.path.join(app.config['UPLOAD_FOLDER'], data_filename)
+        return render_template('index.html')
+    return render_template("index.html")
+
+
+@app.route("/csv", methods=['GET', 'POST'])
 def home():
     data = []
     if request.method == 'POST':
@@ -61,7 +82,7 @@ def home():
                     # Write Shopify CSV row to file
                     shopify_writer.writerow(shopify_row)
 
-    return render_template('home.html', data=data)
+    return render_template('index.html', data=data)
 
 
 @app.route("/etsy")
